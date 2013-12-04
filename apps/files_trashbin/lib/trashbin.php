@@ -778,6 +778,12 @@ class Trashbin {
 	 */
 	private static function expire($trashbinSize, $user) {
 
+		$autoExpire = \OC_Config::getValue('trashbin_auto_expire', true);
+		
+		if ($autoExpire === false) {
+			return 0;
+		}
+
 		$user = \OCP\User::getUser();
 		$view = new \OC\Files\View('/' . $user);
 		$availableSpace = self::calculateFreeSpace($trashbinSize);
