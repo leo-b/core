@@ -63,7 +63,6 @@ class Access extends LDAPUtility {
 			return false;
 		}
 		//all or nothing! otherwise we get in trouble with.
-		$this->initPagedSearch($filter, array($dn), $attr, 99999, 0);
 		$dn = $this->DNasBaseParameter($dn);
 		$rr = @$this->ldap->read($cr, $dn, $filter, array($attr));
 		if(!$this->ldap->isResource($rr)) {
@@ -676,6 +675,9 @@ class Access extends LDAPUtility {
 		$linkResources = array_pad(array(), count($base), $link_resource);
 		$sr = $this->ldap->search($linkResources, $base, $filter, $attr);
 		$error = $this->ldap->errno($link_resource);
+		if ($pagedSearchOK) {
+			$this->ldap->controlPagedResult($link_resource, 0, false, "");
+		}
 		if(!is_array($sr) || $error !== 0) {
 			\OCP\Util::writeLog('user_ldap',
 				'Error when searching: '.$this->ldap->error($link_resource).
@@ -1105,9 +1107,9 @@ class Access extends LDAPUtility {
 		if($this->connection->hasPagedResultSupport && !is_null($limit)) {
 			$offset = intval($offset); //can be null
 			\OCP\Util::writeLog('user_ldap',
-				'initializing paged search for  Filter'.$filter.' base '.print_r($bases, true)
+				'initializing paged search for  Filter '.$filter.' base '.print_r($bases, true)
 				.' attr '.print_r($attr, true). ' limit ' .$limit.' offset '.$offset,
-				\OCP\Util::INFO);
+				\OCP\Util::DEBUG);
 			//get the cookie from the search for the previous search, required by LDAP
 			foreach($bases as $base) {
 
@@ -1129,7 +1131,7 @@ class Access extends LDAPUtility {
 				}
 				if(!is_null($cookie)) {
 					if($offset > 0) {
-						\OCP\Util::writeLog('user_ldap', 'Cookie '.$cookie, \OCP\Util::INFO);
+						\OCP\Util::writeLog('user_ldap', 'Cookie '.CRC32($cookie), \OCP\Util::INFO);
 					}
 					$pagedSearchOK = $this->ldap->controlPagedResult(
 						$this->connection->getConnectionResource(), $limit,
